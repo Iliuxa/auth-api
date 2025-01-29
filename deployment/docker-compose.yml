@@ -14,6 +14,7 @@ services:
     ports:
       - "8080:8080"
       - "4000:4000"
+      - "44044:44044"
 
   go_db:
     container_name: go_db

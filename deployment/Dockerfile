@@ -19,4 +19,4 @@ RUN go build -o migrate ./cmd/migration/main.go
 RUN chmod +x /app/migrate /app/api
 
 # Запускаем миграции, а затем основное приложение
-CMD ["sh", "-c", "./migrate"]
+CMD ["sh", "-c", "./migrate && ./api"]

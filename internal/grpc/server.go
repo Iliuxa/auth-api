@@ -1,4 +1,4 @@
-package grpc
+package authgrpc
 
 import (
 	"auth-api/internal/domain"
@@ -15,20 +15,6 @@ type serverAPI struct {
 	proto.UnimplementedAuthServiceServer
 	auth usecase.AuthUsecase
 }
-
-//type Auth interface {
-//	Login(
-//		ctx context.Context,
-//		email string,
-//		password string,
-//	) (jwt string, err error)
-//	Register(
-//		ctx context.Context,
-//		email string,
-//		password string,
-//		name string,
-//	) (jwt string, err error)
-//}
 
 func Register(gRPCServe *grpc.Server, auth usecase.AuthUsecase) {
 	proto.RegisterAuthServiceServer(gRPCServe, &serverAPI{auth: auth})
@@ -51,6 +37,7 @@ func (s *serverAPI) Login(ctx context.Context, in *proto.LoginInfo) (*proto.Logi
 }
 
 func (s *serverAPI) Register(ctx context.Context, in *proto.RegisterRequest) (*proto.LoginResponse, error) {
+	return nil, status.Error(codes.InvalidArgument, "User already exists")
 	// todo validation
 	token, err := s.auth.Register(ctx, in.GetLogin().GetEmail(), in.GetLogin().GetPassword(), in.GetName())
 
