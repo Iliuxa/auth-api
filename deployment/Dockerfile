@@ -1,31 +1,22 @@
 # Используем официальный образ Go для сборки
-FROM golang:1.23.4 AS builder
+FROM golang:1.23.4-alpine3.21
 
-# Устанавливаем рабочую директорию внутри контейнера
 WORKDIR /app
 
-# Копируем файлы проекта в контейнер
+# Копируем файлы проекта
 COPY . .
 
 # Загружаем зависимости
-# RUN go mod tidy
+RUN go mod tidy
 
-# Компилируем приложение
+# Компилируем API и миграции
 RUN go build -o api ./cmd/api/main.go
 RUN go build -o migrate ./cmd/migration/main.go
 
-# Используем минимальный образ для продакшена
-FROM alpine:latest
-
-# Устанавливаем рабочую директорию
-WORKDIR /app
-
-# Устанавливаем зависимости (если нужно)
 # RUN apk --no-cache add ca-certificates
 
-# Копируем скомпилированные бинарники
-COPY --from=builder /app/api .
-COPY --from=builder /app/migrate .
+# Делаем файлы исполняемыми
+RUN chmod +x /app/migrate /app/api
 
 # Запускаем миграции, а затем основное приложение
-CMD ["sh", "-c", "./migrate && ./api"]
+CMD ["sh", "-c", "./migrate"]

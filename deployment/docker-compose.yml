@@ -8,16 +8,12 @@ services:
       dockerfile: deployment/Dockerfile
     environment:
       DATABASE_URL: "host=go_db user=postgres password=postgres dbname=postgres sslmode=disable"
-    ports:
-      - "8080:8080"
-      - "4000:4000"
-    security_opt:
-      - "seccomp:unconfined"
-    stdin_open: true
-    tty: true
     depends_on:
       go_db:
         condition: service_healthy
+    ports:
+      - "8080:8080"
+      - "4000:4000"
 
   go_db:
     container_name: go_db
