@@ -1,4 +1,4 @@
-package grpc
+package authgrpc
 
 import (
 	"auth-api/internal/domain"
@@ -15,20 +15,6 @@ type serverAPI struct {
 	proto.UnimplementedAuthServiceServer
 	auth usecase.AuthUsecase
 }
-
-//type Auth interface {
-//	Login(
-//		ctx context.Context,
-//		email string,
-//		password string,
-//	) (jwt string, err error)
-//	Register(
-//		ctx context.Context,
-//		email string,
-//		password string,
-//		name string,
-//	) (jwt string, err error)
-//}
 
 func Register(gRPCServe *grpc.Server, auth usecase.AuthUsecase) {
 	proto.RegisterAuthServiceServer(gRPCServe, &serverAPI{auth: auth})

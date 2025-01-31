@@ -19,12 +19,14 @@ type AuthUsecase interface {
 type authUsecase struct {
 	userRepository domain.UserRepository
 	log            *slog.Logger
+	tokenTTL       time.Duration
 }
 
-func NewAuthUsecase(userRepository domain.UserRepository, log *slog.Logger) AuthUsecase {
+func NewAuthUsecase(userRepository domain.UserRepository, log *slog.Logger, ttl time.Duration) AuthUsecase {
 	return &authUsecase{
 		userRepository: userRepository,
 		log:            log,
+		tokenTTL:       ttl,
 	}
 }
 
@@ -37,7 +39,7 @@ func (a *authUsecase) Login(ctx context.Context, email string, password string) 
 	)
 	log.Info("Attempting to login user")
 
-	user, err := a.userRepository.FindByEmail(email)
+	user, err := a.userRepository.FindByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			a.log.Warn("User not found", slog.StringValue(err.Error()))
@@ -53,7 +55,7 @@ func (a *authUsecase) Login(ctx context.Context, email string, password string) 
 		return "", fmt.Errorf("%s: %w", operation, domain.ErrInvalidCredentials)
 	}
 
-	token, err := jwt.NewToken(user, time.Hour)
+	token, err := jwt.NewToken(user, a.tokenTTL)
 	if err != nil {
 		a.log.Error("Failed to create token", slog.StringValue(err.Error()))
 		return "", fmt.Errorf("%s: %w", operation, err)
@@ -76,11 +78,13 @@ func (a *authUsecase) Register(ctx context.Context, email string, password strin
 		return "", fmt.Errorf("%s: %w", operation, err)
 	}
 
-	err = a.userRepository.CreateUser(&domain.User{
+	user := domain.User{
 		FullName: name,
 		Email:    email,
 		PassHash: passHash,
-	})
+	}
+
+	err = a.userRepository.CreateUser(ctx, &user)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserAlreadyExists) {
 			a.log.Warn("User already exists", slog.StringValue(err.Error()))
@@ -90,5 +94,11 @@ func (a *authUsecase) Register(ctx context.Context, email string, password strin
 		log.Error("Failed to create user", slog.StringValue(err.Error()))
 		return "", fmt.Errorf("%s: %w", operation, err)
 	}
-	return "", nil
+
+	token, err := jwt.NewToken(&user, a.tokenTTL)
+	if err != nil {
+		a.log.Error("Failed to create token", slog.StringValue(err.Error()))
+		return "", fmt.Errorf("%s: %w", operation, err)
+	}
+	return token, nil
 }

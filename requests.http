@@ -1,0 +1,21 @@
+###
+GRPC localhost:44044/auth.AuthService/Register
+
+{
+  "login": {
+    "email": "213",
+    "password": "sfg"
+  },
+  "name": "fweagf"
+}
+
+### Request with body
+GRPC grpcs://0.0.0.0:44044/auth.AuthService/Register
+
+{
+  "login": {
+    "email": "213",
+    "password": "sfg"
+  },
+  "name": "fweagf"
+}

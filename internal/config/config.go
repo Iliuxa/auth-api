@@ -8,11 +8,10 @@ import (
 )
 
 type Config struct {
-	Env            string     `yaml:"env" env-default:"local"`
-	StoragePath    string     `yaml:"storage_path" env-required:"true"`
-	GRPC           GRPCConfig `yaml:"grpc"`
-	MigrationsPath string
-	TokenTTL       time.Duration `yaml:"token_ttl" env-default:"1h"`
+	Env      string        `yaml:"env" env-default:"local"`
+	Database string        `env:"DATABASE_URL" env-default:"host=localhost user=postgres password=postgres dbname=postgres sslmode=disable"`
+	GRPC     GRPCConfig    `yaml:"grpc"`
+	TokenTTL time.Duration `yaml:"token_ttl" env-default:"1h"`
 }
 
 type GRPCConfig struct {
@@ -41,7 +40,7 @@ func MustLoad() *Config {
 
 func fetchConfigPath() string {
 	var res string
-	flag.StringVar(&res, "config", "config.yaml", "config path")
+	flag.StringVar(&res, "config", "config/config.yaml", "config path")
 	flag.Parse()
 	return res
 }

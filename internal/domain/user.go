@@ -1,6 +1,9 @@
 package domain
 
-import "errors"
+import (
+	"context"
+	"errors"
+)
 
 type User struct {
 	Id       int
@@ -16,8 +19,8 @@ var (
 )
 
 type UserRepository interface {
-	CreateUser(user *User) error
-	FindByEmail(email string) (*User, error)
+	CreateUser(ctx context.Context, user *User) error
+	FindByEmail(ctx context.Context, email string) (*User, error)
 	//FindByID(id int) (*User, error)
 	//Create(user *User) error
 	//Update(user *User) error
