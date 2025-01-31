@@ -32,7 +32,7 @@ func (r *userRepository) CreateUser(ctx context.Context, user *domain.User) (err
 func (r *userRepository) FindByEmail(ctx context.Context, email string) (*domain.User, error) {
 	const operation = "repository.FindByEmail"
 
-	stmt, err := r.db.Prepare("SELECT id, fullName, email, password as passHash FROM users WHERE email = ?")
+	stmt, err := r.db.Prepare(`SELECT id, fullName, email, password as passHash FROM users WHERE email = $1`)
 	if err != nil {
 		return &domain.User{}, fmt.Errorf("%s: %w", operation, err)
 	}

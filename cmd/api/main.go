@@ -14,7 +14,7 @@ func main() {
 
 	log := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	application := app.New(log, cfg.GRPC.Port, "", cfg.TokenTTL)
+	application := app.New(log, cfg.GRPC.Port, cfg.Database, cfg.TokenTTL)
 
 	go func() {
 		application.GRPCServer.MustRun()

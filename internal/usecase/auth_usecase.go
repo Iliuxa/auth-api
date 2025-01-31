@@ -78,11 +78,13 @@ func (a *authUsecase) Register(ctx context.Context, email string, password strin
 		return "", fmt.Errorf("%s: %w", operation, err)
 	}
 
-	err = a.userRepository.CreateUser(ctx, &domain.User{
+	user := domain.User{
 		FullName: name,
 		Email:    email,
 		PassHash: passHash,
-	})
+	}
+
+	err = a.userRepository.CreateUser(ctx, &user)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserAlreadyExists) {
 			a.log.Warn("User already exists", slog.StringValue(err.Error()))
@@ -92,5 +94,11 @@ func (a *authUsecase) Register(ctx context.Context, email string, password strin
 		log.Error("Failed to create user", slog.StringValue(err.Error()))
 		return "", fmt.Errorf("%s: %w", operation, err)
 	}
-	return "", nil
+
+	token, err := jwt.NewToken(&user, a.tokenTTL)
+	if err != nil {
+		a.log.Error("Failed to create token", slog.StringValue(err.Error()))
+		return "", fmt.Errorf("%s: %w", operation, err)
+	}
+	return token, nil
 }

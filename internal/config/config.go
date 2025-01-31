@@ -9,7 +9,7 @@ import (
 
 type Config struct {
 	Env      string        `yaml:"env" env-default:"local"`
-	Database string        `env:"storage_path" env-default:"host=localhost user=postgres password=postgres dbname=postgres sslmode=disable"`
+	Database string        `env:"DATABASE_URL" env-default:"host=localhost user=postgres password=postgres dbname=postgres sslmode=disable"`
 	GRPC     GRPCConfig    `yaml:"grpc"`
 	TokenTTL time.Duration `yaml:"token_ttl" env-default:"1h"`
 }
