@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	proto "github.com/Iliuxa/protos/gen/proto"
+	"github.com/go-playground/validator"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -37,7 +38,20 @@ func (s *serverAPI) Login(ctx context.Context, in *proto.LoginInfo) (*proto.Logi
 }
 
 func (s *serverAPI) Register(ctx context.Context, in *proto.RegisterRequest) (*proto.LoginResponse, error) {
-	// todo validation
+	validate := validator.New()
+	err := validate.Struct(struct {
+		email    string `validate:"required,email"`
+		name     string `validate:"required"`
+		password string `validate:"required"`
+	}{
+		email:    in.GetLogin().Email,
+		password: in.GetLogin().Password,
+		name:     in.Name,
+	})
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "Validation Error")
+	}
+
 	token, err := s.auth.Register(ctx, in.GetLogin().GetEmail(), in.GetLogin().GetPassword(), in.GetName())
 
 	if err != nil {
