@@ -7,7 +7,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -65,74 +64,148 @@ func TestRegisterLogin_Login_HappyPath(t *testing.T) {
 	assert.InDelta(t, loginTime.Add(st.Cfg.TokenTTL).Unix(), claims2["exp"].(float64), deltaSec)
 }
 
-func TestRegisterLogin_Register(t *testing.T) {
+func TestRegister_FailCases(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	type testType struct {
 		testName    string
 		expectedErr string
-		data        auth.RegisterRequest
+		name        string
+		email       string
+		password    string
 	}
 
 	tests := []testType{
 		{
-			"empty name",
-			"Validation Error",
-			auth.RegisterRequest{
-				Name:  "",
-				Login: &auth.LoginInfo{Email: gofakeit.Email(), Password: getFakePassword()},
-			},
+			testName:    "empty name",
+			expectedErr: "Validation Error",
+			name:        "",
+			email:       gofakeit.Email(),
+			password:    getFakePassword(),
 		},
 		{
-			"empty email",
-			"Validation Error",
-			auth.RegisterRequest{
-				Name:  "Name",
-				Login: &auth.LoginInfo{Email: "", Password: getFakePassword()},
-			},
+			testName:    "empty email",
+			expectedErr: "Validation Error",
+			name:        "Name",
+			email:       "",
+			password:    getFakePassword(),
 		},
 		{
-			"invalid email",
-			"Validation Error",
-			auth.RegisterRequest{
-				Name:  "Name",
-				Login: &auth.LoginInfo{Email: "1234", Password: getFakePassword()},
-			},
+			testName:    "invalid email",
+			expectedErr: "Validation Error",
+			name:        "Name",
+			email:       "1234",
+			password:    getFakePassword(),
 		},
 		{
-			"empty password",
-			"Validation Error",
-			auth.RegisterRequest{
-				Name:  "Name",
-				Login: &auth.LoginInfo{Email: gofakeit.Email(), Password: ""},
-			},
+			testName:    "empty password",
+			expectedErr: "Validation Error",
+			name:        "Name",
+			email:       gofakeit.Email(),
+			password:    "",
 		},
 	}
 
-	wg := &sync.WaitGroup{}
-	toProc := make(chan testType, 5)
+	wg := sync.WaitGroup{}
 
-	for i := 0; i <= runtime.NumCPU(); i++ {
+	for _, test := range tests {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for {
-				if test, ok := <-toProc; ok {
-					_, err := st.AuthClient.Register(ctx, &test.data)
-					require.NoError(t, err)
-					require.Contains(t, err.Error(), test.expectedErr)
-				} else {
-					return
-				}
-			}
+			t.Run(test.testName, func(t *testing.T) {
+				_, err := st.AuthClient.Register(ctx, &auth.RegisterRequest{
+					Name:  test.name,
+					Login: &auth.LoginInfo{Email: test.email, Password: test.password},
+				})
+				require.Error(t, err)
+				require.Contains(t, err.Error(), test.expectedErr)
+			})
 		}()
 	}
 
+	wg.Wait()
+}
+
+func TestLogin_FailCases(t *testing.T) {
+	ctx, st := suite.New(t)
+
+	type testType struct {
+		testName    string
+		expectedErr string
+		email       string
+		password    string
+	}
+
+	tests := []testType{
+		{
+			testName:    "empty email",
+			expectedErr: "Validation Error",
+			email:       "",
+			password:    getFakePassword(),
+		},
+		{
+			testName:    "invalid email",
+			expectedErr: "Validation Error",
+			email:       "1234",
+			password:    getFakePassword(),
+		},
+		{
+			testName:    "empty password",
+			expectedErr: "Validation Error",
+			email:       gofakeit.Email(),
+			password:    "",
+		},
+	}
+
+	wg := sync.WaitGroup{}
+
+	for _, test := range tests {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			t.Run(test.testName, func(t *testing.T) {
+				_, err := st.AuthClient.Login(ctx, &auth.LoginInfo{
+					Email:    test.email,
+					Password: test.password,
+				})
+				require.Error(t, err)
+				require.Contains(t, err.Error(), test.expectedErr)
+			})
+		}()
+	}
+
+	email := gofakeit.Email()
+	password := getFakePassword()
+	_, err := st.AuthClient.Register(ctx, &auth.RegisterRequest{
+		Name:  "test",
+		Login: &auth.LoginInfo{Email: email, Password: password},
+	})
+	require.NoError(t, err)
+
+	wg.Add(1)
 	go func() {
-		for _, test := range tests {
-			toProc <- test
-		}
-		close(toProc)
+		defer wg.Done()
+		t.Run("Invalid password", func(t *testing.T) {
+			_, err := st.AuthClient.Login(ctx, &auth.LoginInfo{
+				Email:    email,
+				Password: "12345",
+			})
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "Invalid email or password")
+		})
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		t.Run("User not found", func(t *testing.T) {
+			_, err := st.AuthClient.Login(ctx, &auth.LoginInfo{
+				Email:    gofakeit.Email(),
+				Password: password,
+			})
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "Invalid email or password")
+		})
 	}()
 
 	wg.Wait()

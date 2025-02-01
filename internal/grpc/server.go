@@ -6,7 +6,7 @@ import (
 	"context"
 	"errors"
 	proto "github.com/Iliuxa/protos/gen/proto"
-	"github.com/go-playground/validator"
+	"github.com/go-playground/validator/v10"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -22,12 +22,18 @@ func Register(gRPCServe *grpc.Server, auth usecase.AuthUsecase) {
 }
 
 func (s *serverAPI) Login(ctx context.Context, in *proto.LoginInfo) (*proto.LoginResponse, error) {
-	// todo validation
+	validate := *validator.New()
+	var isValidateErr = false
+	isValidateErr = validate.Var(in.GetEmail(), "email,min=1") != nil
+	isValidateErr = isValidateErr || validate.Var(in.GetPassword(), "min=1") != nil
+	if isValidateErr {
+		return nil, status.Error(codes.InvalidArgument, "Validation Error")
+	}
 
 	token, err := s.auth.Login(ctx, in.GetEmail(), in.GetPassword())
 
 	if err != nil {
-		if errors.Is(err, domain.ErrInvalidCredentials) {
+		if errors.Is(err, domain.ErrInvalidCredentials) || errors.Is(err, domain.ErrUserNotFound) {
 			return nil, status.Error(codes.InvalidArgument, "Invalid email or password")
 		}
 
@@ -38,17 +44,12 @@ func (s *serverAPI) Login(ctx context.Context, in *proto.LoginInfo) (*proto.Logi
 }
 
 func (s *serverAPI) Register(ctx context.Context, in *proto.RegisterRequest) (*proto.LoginResponse, error) {
-	validate := validator.New()
-	err := validate.Struct(struct {
-		email    string `validate:"required,email"`
-		name     string `validate:"required"`
-		password string `validate:"required"`
-	}{
-		email:    in.GetLogin().Email,
-		password: in.GetLogin().Password,
-		name:     in.Name,
-	})
-	if err != nil {
+	validate := *validator.New()
+	var isValidateErr = false
+	isValidateErr = validate.Var(in.GetLogin().GetEmail(), "email,min=1") != nil
+	isValidateErr = isValidateErr || validate.Var(in.GetLogin().GetPassword(), "min=1") != nil
+	isValidateErr = isValidateErr || validate.Var(in.GetName(), "min=1") != nil
+	if isValidateErr {
 		return nil, status.Error(codes.InvalidArgument, "Validation Error")
 	}
 

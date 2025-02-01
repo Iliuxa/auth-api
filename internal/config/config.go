@@ -1,7 +1,6 @@
 package config
 
 import (
-	"flag"
 	"github.com/ilyakaznacheev/cleanenv"
 	"os"
 	"time"
@@ -39,8 +38,5 @@ func MustLoad() *Config {
 }
 
 func fetchConfigPath() string {
-	var res string
-	flag.StringVar(&res, "config", "config/config.yaml", "config path")
-	flag.Parse()
-	return res
+	return "config/config.yaml"
 }
