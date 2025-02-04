@@ -21,7 +21,14 @@ func NewUserRepository(db *sql.DB) domain.UserRepository {
 func (r *userRepository) CreateUser(ctx context.Context, user *domain.User) (err error) {
 	const operation = "repository.CreateUser"
 
-	_, err = r.db.ExecContext(ctx, `insert into users (fullName, email, password) values ($1, $2, $3)`, user.FullName, user.Email, user.PassHash)
+	stmt, err := r.db.Prepare(`insert into users (fullName, email, password) values ($1, $2, $3) RETURNING id`)
+	if err != nil {
+		return fmt.Errorf("%s: %w", operation, err)
+	}
+	defer stmt.Close()
+
+	row := stmt.QueryRowContext(ctx, user.FullName, user.Email, user.PassHash)
+	err = row.Scan(&user.Id)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", operation, err)
 	}
@@ -36,6 +43,7 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*domain
 	if err != nil {
 		return &domain.User{}, fmt.Errorf("%s: %w", operation, err)
 	}
+	defer stmt.Close()
 
 	row := stmt.QueryRowContext(ctx, email)
 
