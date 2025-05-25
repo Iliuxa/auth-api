@@ -1,0 +1,13 @@
+.PHONY: test
+
+up:
+	@echo "  >  Building auth-api..."
+	docker-compose --project-directory ./deployment up -d --build
+
+down:
+	@echo "  >  auth-api down..."
+	docker-compose --project-directory ./deployment down
+
+test:
+	@echo "  >  auth-api testing..."
+	docker exec -it go-auth-app go test ./test
